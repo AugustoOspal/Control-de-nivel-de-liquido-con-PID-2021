@@ -190,7 +190,7 @@ void loop()
 					errorAnterior = error;
 
 					lcd.setCursor(0, 1);
-					barraProgreso(setPoint, nivelActual, estadoBarra);
+					barraProgreso(setPoint, nivelActual, &estadoBarra);
 				}
 				
 				lcd.setCursor(0, 1);
@@ -237,19 +237,19 @@ float leerSensorUltrasonico (int triggerPin, int echoPin)
 	return pulseIn(echoPin, HIGH);
 }
 
-int barraProgreso(float valorTecho, float valorActual, int estado)
+int barraProgreso(float valorTecho, float valorActual, int *estado)
 {
 	// Estado se debe inicializar a 0
 
 	// Digitos totales horisontales del display
 	byte nDigitos = 16;
 	float valorPorDigito = valorTecho / nDigitos;
-	int digitosRestantes = (int) round(valorActual / valorPorDigito) - estado;
+	int digitosRestantes = (int) round(valorActual / valorPorDigito) - *estado;
 
 	for (int i = 0; i < digitosRestantes; i++)
 	{
 		lcd.print("=");
-		estado++;
+		*estado++;
 	}
 
 }

@@ -1,0 +1,6 @@
+.pio
+.vscode
+inlcude
+lib
+test
+platformio.ini

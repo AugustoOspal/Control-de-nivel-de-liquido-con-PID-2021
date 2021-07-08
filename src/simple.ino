@@ -72,11 +72,10 @@ void loop()
 	lcd.setCursor(0, 0);
 	lcd.print(mensaje_input);
 
-	// Imprime los daots que tenemos hasta ahora (si hay alguno)
+	// Imprime los datos que tenemos hasta ahora (si hay alguno)
 	if (n_numeros)
 	{
-		// Si llegan a querer mas de 255 digitos se tiene que cambiar a otro tipo
-		for (byte i = 0; i < n_numeros; i++)
+		for (int i = 0; i < n_numeros; i++)
 		{
 			lcd.print(numeros[i]);
 		}
@@ -89,6 +88,7 @@ void loop()
 		// En el caso de que este todo bien lo guardamos
 		if (isDigit(numero) && n_numeros < cantidad_maxima_digitos)
 		{
+			// Almacena el nuevo nuemero
 			numeros[n_numeros] = numero;
 			
 			// Lo imprimimos
@@ -134,22 +134,19 @@ void loop()
 			lcd.print("No = 1  Si = 2");
 			lcd.blink();
 
-			// Hasta que no tengamos como respuesta un 1 o 2
-
 			numero = 0;
 
+			// Hasta que no tengamos como respuesta un 1 o 2
 			while (numero != 1 && numero != 2)
 			{
 				numero = keypad.getKey();
 			}
 
-			/* 	
-				Dejamos de introducir los datos. Aca es cuando tendriamos que 
-			 	procesar los datos del sensor de ultrasonido y despues mandarle 
-			 	al motor las instrucciones
-			*/
+			lcd.noBlink();
+
 			if (numero == 2)
 			{
+				// Imprime el set point ingresado
 				lcd.clear();
 				lcd.setCursor(0, 0);
 				lcd.print("Set point -> ");
@@ -195,6 +192,7 @@ void loop()
 				
 				lcd.setCursor(0, 1);
 
+				// Borramos la fila 1 (primera fila = 0)
 				for (int i = 0; i < 16; i++)
 				{
 					lcd.print(" ");
@@ -212,8 +210,6 @@ void loop()
 			{
 				lcd.clear();
 			}
-
-			lcd.noBlink();
 		}
 	}
 }

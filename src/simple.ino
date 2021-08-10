@@ -1,28 +1,28 @@
 #include "Wire.h"
 #include <Keypad.h>
-#include "Adafruit_LiquidCrystal.h"
+#include <LiquidCrystal_I2C.h> 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////Pines//////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#define ECHO_PIN 10
-#define TRIGGER_PIN 13
+#define ECHO_PIN 2
+#define TRIGGER_PIN 3
 #define PWM_OUTPUT 11
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////Configuraciones/////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define ROWS 4
-#define COLS 4
+#define COLS 3
 
 char hexaKeys[ROWS][COLS] = {
-	{'1','2','3','A'},
-	{'4','5','6','B'},
-	{'7','8','9','C'},
-	{'*','0','#','D'}
+	{'1','2','3'},
+	{'4','5','6'},
+	{'7','8','9'},
+	{'*','0','#',}
 };
 
-byte rowPins[ROWS] = {9, 8, 7, 6}; //connect to the row pinouts of the keypad
-byte colPins[COLS] = {5, 4, 3, 2};
+byte rowPins[ROWS] = {13, 12, 10, 9}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {8, 7, 6};
 
 #define TECLA_BORRADO '*'
 #define TECLA_INTERRUPCION '#'
@@ -30,15 +30,11 @@ byte colPins[COLS] = {5, 4, 3, 2};
 #define cantidad_maxima_digitos 2
 #define mensaje_input "Set point: "
 
-// PID constantes
-const double kp = 0;
-const double ki = 0;
-const double kd = 0;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 // Connect via i2c, default address #0 (A0-A2 not jumpered)
-Adafruit_LiquidCrystal lcd(0);
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE); 
 
 // Crea un objeto a partir de la clase Keypad
 Keypad keypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
@@ -90,7 +86,7 @@ void loop()
 		{
 			// Almacena el nuevo nuemero
 			numeros[n_numeros] = numero;
-			
+
 			// Lo imprimimos
 			lcd.setCursor(mensaje_len + n_numeros, 0);
 			lcd.print(numero);
@@ -126,89 +122,34 @@ void loop()
 		// Entramos a la confirmacion
 		else if (numero == TECLA_INTERRUPCION)
 		{
-			// Mensaje de confirmacion
+			int estado = 0;
+			int set_point = atoi(numeros);
+			float valor_sensor_ultrasonido = leerSensorUltrasonico(3, 2);
+
 			lcd.clear();
-			lcd.setCursor(0,0);
-			lcd.print("Seguro?");
-			lcd.setCursor(0,1);
-			lcd.print("No = 1  Si = 2");
-			lcd.blink();
+			lcd.setCursor(0, 0);
+			lcd.print("Set point : ");
 
-			numero = 0;
-
-			// Hasta que no tengamos como respuesta un 1 o 2
-			while (numero != 1 && numero != 2)
+			for (int i  = 0; i  < n_numeros; i++)
 			{
-				numero = keypad.getKey();
+				lcd.print(numeros[i]);
 			}
 
-			lcd.noBlink();
-
-			if (numero == 2)
+			while (true)
 			{
-				// Imprime el set point ingresado
-				lcd.clear();
-				lcd.setCursor(0, 0);
-				lcd.print("Set point -> ");
-				lcd.print(String(numeros));
-
-				unsigned long tiempoActual, ultimoTiempo, diferenciaTimepo;
-
-				int estadoBarra = 0;
-
-				float p = 0, i = 0, d = 0;
-				float setPoint, nivelActual, output, error, errorAnterior;
-
-				ultimoTiempo = 0;
-				setPoint = atoi(numeros);
-				nivelActual = 0;
-
-				// PID
-				while (setPoint > nivelActual)
+				if (set_point > valor_sensor_ultrasonido)
 				{
-					tiempoActual = millis();
-					diferenciaTimepo = tiempoActual - ultimoTiempo;
-
-					nivelActual = leerSensorUltrasonico(TRIGGER_PIN, ECHO_PIN);
-					error = setPoint - nivelActual;
-
-					p = error;
-					i += error * diferenciaTimepo;
-					d = (error - errorAnterior) / diferenciaTimepo;
-
-					output = kp * p + ki * i + kd * d;
-
-					if (output > 255) output = 255;
-					else if (output < 0) output = 0;
-
-					analogWrite(PWM_OUTPUT, output);
-
-					ultimoTiempo = tiempoActual;
-					errorAnterior = error;
-
+					clearRow(1);
 					lcd.setCursor(0, 1);
-					barraProgreso(setPoint, nivelActual, &estadoBarra);
-				}
-				
-				lcd.setCursor(0, 1);
 
-				// Borramos la fila 1 (primera fila = 0)
-				for (int i = 0; i < 16; i++)
+					valor_sensor_ultrasonido = leerSensorUltrasonico(3, 2);
+					barraProgreso(set_point, valor_sensor_ultrasonido, &estado);  
+				}
+
+				else()
 				{
-					lcd.print(" ");
+					break;
 				}
-
-				lcd.setCursor(0, 1);
-				lcd.print("Listo");
-				
-				delay(200);
-				lcd.clear();
-			}
-
-			// Volvemos a el menu para seguir ingresando numeros
-			else
-			{
-				lcd.clear();
 			}
 		}
 	}
@@ -221,7 +162,7 @@ float leerSensorUltrasonico (int triggerPin, int echoPin)
 
 	digitalWrite(triggerPin, LOW);
 	delayMicroseconds(2);
-	
+
 	// Setea el pin en HIGH por 10 micro segundos
 	// (Lo especifica el manual)
 	digitalWrite(triggerPin, HIGH);
@@ -229,8 +170,8 @@ float leerSensorUltrasonico (int triggerPin, int echoPin)
 	digitalWrite(triggerPin, LOW);
 
 	pinMode(echoPin, INPUT);
-	
-	return pulseIn(echoPin, HIGH);
+
+	return pulseIn(echoPin, HIGH)  / 58 + 1;
 }
 
 int barraProgreso(float valorTecho, float valorActual, int *estado)
@@ -242,17 +183,24 @@ int barraProgreso(float valorTecho, float valorActual, int *estado)
 	float valorPorDigito = valorTecho / nDigitos;
 	int digitosRestantes = (int) round(valorActual / valorPorDigito) - *estado;
 
+	lcd.setCursor(0, 1);
+
+	for (int i = 0; i < 16; i++)
+	{
+		lcd.print(" ");
+	}
+
+	lcd.setCursor(0, 1);
 	for (int i = 0; i < digitosRestantes; i++)
 	{
 		lcd.print("=");
 		*estado++;
 	}
-
 }
 
 void clearRow(int row)
 {
-	lcd.setCursor(0, row); 
+	lcd.setCursor(0, row);
 
 	for (int i = 0; i < 16; i++)
 	{
